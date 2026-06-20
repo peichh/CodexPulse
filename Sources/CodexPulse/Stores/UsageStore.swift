@@ -20,11 +20,11 @@ final class UsageStore: ObservableObject {
     var menuTitle: String {
         if let window = snapshot.rateLimits?.preferredWindow {
             let percent = UsageFormatters.percentValue(window.usedPercent)
-            let reset = UsageFormatters.countdown(window.resetsAt, from: currentTime)
+            let reset = UsageFormatters.countdownWithSeconds(window.resetsAt, from: currentTime)
             return "use \(percent) | \(reset)"
         }
 
-        return "use --% | --:--"
+        return "use --% | --:--:--"
     }
 
     func start() {

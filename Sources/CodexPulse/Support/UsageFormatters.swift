@@ -53,6 +53,14 @@ enum UsageFormatters {
         return String(format: "%02d:%02d", hours, minutes)
     }
 
+    static func countdownWithSeconds(_ date: Date, from now: Date = Date()) -> String {
+        let seconds = max(Int(date.timeIntervalSince(now)), 0)
+        let hours = seconds / 3600
+        let minutes = (seconds % 3600) / 60
+        let remainingSeconds = seconds % 60
+        return String(format: "%02d:%02d:%02d", hours, minutes, remainingSeconds)
+    }
+
     static func percentValue(_ value: Double) -> String {
         if value >= 10 {
             return String(format: "%.0f%%", value)

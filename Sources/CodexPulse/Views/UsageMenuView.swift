@@ -112,7 +112,7 @@ struct UsageMenuView: View {
                 Spacer()
 
                 if let window {
-                    Text("Resets \(UsageFormatters.resetTime(window.resetsAt))")
+                    Text("Reset \(UsageFormatters.resetTime(window.resetsAt))")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(accent)
                 }
@@ -127,11 +127,11 @@ struct UsageMenuView: View {
                 if let window {
                     Text("\(UsageFormatters.percentValue(window.usedPercent)) used")
                     Spacer()
-                    Text("reset \(UsageFormatters.countdown(window.resetsAt, from: now))")
+                    Text("reset in \(UsageFormatters.countdownWithSeconds(window.resetsAt, from: now))")
                 } else {
                     Text("No rate limit data")
                     Spacer()
-                    Text("--:--")
+                    Text("--:--:--")
                 }
             }
             .font(.system(size: 13, weight: .semibold, design: .monospaced))
