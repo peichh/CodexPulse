@@ -60,7 +60,19 @@ The installer:
 ./script/install.sh
 ```
 
-### Option 3: One-line install
+### Option 3: Download from Releases
+
+1. Open the [latest release](https://github.com/peichh/CodexPulse/releases/latest).
+2. Download **Source code (zip)**.
+3. Unzip it.
+4. Open Terminal in the extracted folder.
+5. Run:
+
+```bash
+./script/install.sh
+```
+
+### Option 4: One-line install
 
 ```bash
 git clone https://github.com/peichh/CodexPulse.git /tmp/CodexPulse && /tmp/CodexPulse/script/install.sh
