@@ -31,6 +31,7 @@ final class CodexUsageReader {
         cache = cache.filter { activeFiles.contains($0.key) }
 
         let sessions = files.compactMap(latestUsageEvent)
+        snapshot.sessions = sessions
 
         for session in sessions {
             snapshot.allTime.add(session.usage)
@@ -150,11 +151,23 @@ final class CodexUsageReader {
         }
 
         var latest: SessionUsage?
+        var workingDirectory: String?
 
         for line in content.split(separator: "\n", omittingEmptySubsequences: true) {
             guard let data = String(line).data(using: .utf8),
                   let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  eventType(object) == "token_count",
+                  let type = eventType(object) else {
+                continue
+            }
+
+            if type == "session_meta" {
+                if workingDirectory == nil {
+                    workingDirectory = (object["payload"] as? [String: Any])?["cwd"] as? String
+                }
+                continue
+            }
+
+            guard type == "token_count",
                   let info = eventInfo(object),
                   let usageObject = info["total_token_usage"] as? [String: Any] else {
                 continue
@@ -166,11 +179,14 @@ final class CodexUsageReader {
             }
 
             let date = eventDate(object)
+            let projectPath = workingDirectory
             latest = SessionUsage(
                 id: file,
                 date: date,
                 localDay: calendar.startOfDay(for: date),
                 model: eventModel(object, info: info),
+                projectName: projectName(for: projectPath, file: file),
+                projectPath: projectPath,
                 usage: usage,
                 rateLimits: eventRateLimits(object, eventDate: date)
             )
@@ -183,6 +199,18 @@ final class CodexUsageReader {
         )
 
         return latest
+    }
+
+    private func projectName(for projectPath: String?, file: URL) -> String {
+        if let projectPath, !projectPath.isEmpty {
+            let url = URL(fileURLWithPath: projectPath)
+            let name = url.lastPathComponent.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !name.isEmpty {
+                return name
+            }
+        }
+
+        return "Codex sessions"
     }
 
     private func eventType(_ event: [String: Any]) -> String? {

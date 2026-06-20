@@ -3,20 +3,24 @@ import SwiftUI
 struct UsageMenuView: View {
     @ObservedObject var store: UsageStore
     @AppStorage("appearanceMode") private var appearanceMode = AppearanceMode.system.rawValue
+    @AppStorage("selectedProject") private var selectedProject = "All projects"
     @Environment(\.colorScheme) private var systemColorScheme
 
     var body: some View {
-        let snapshot = store.snapshot
         let now = store.currentTime
         let palette = currentPalette
+        let overview = store.overview(for: selectedProject)
+        let heatmap = store.heatmapDays(for: selectedProject)
+        let projects = store.projectOptions()
 
         VStack(spacing: 0) {
             header(palette)
 
             VStack(alignment: .leading, spacing: 16) {
                 serviceHeader(palette)
+                projectFilter(projects, palette: palette)
 
-                if let limits = snapshot.rateLimits {
+                if let limits = store.snapshot.rateLimits {
                     rateCard(limits.primary, fallbackTitle: "5h", now: now, palette: palette)
                     rateCard(limits.secondary, fallbackTitle: "Weekly", now: now, palette: palette)
                 } else {
@@ -25,11 +29,19 @@ struct UsageMenuView: View {
 
                 Divider().overlay(palette.divider)
 
-                metricGrid(snapshot, palette: palette)
+                heatmapView(heatmap, palette: palette)
 
                 Divider().overlay(palette.divider)
 
-                modelSummary(snapshot, palette: palette)
+                metricGrid(overview, palette: palette)
+
+                Divider().overlay(palette.divider)
+
+                projectSummary(store.projectUsage(for: selectedProject), palette: palette)
+
+                Divider().overlay(palette.divider)
+
+                modelSummary(overview.models, palette: palette)
 
                 Divider().overlay(palette.divider)
 
@@ -96,6 +108,24 @@ struct UsageMenuView: View {
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .background(palette.pill, in: Capsule())
+            Spacer()
+        }
+    }
+
+    private func projectFilter(_ projects: [String], palette: PulsePalette) -> some View {
+        HStack(spacing: 10) {
+            Text("Project")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(palette.muted)
+
+            Picker("", selection: $selectedProject) {
+                ForEach(projects, id: \.self) { project in
+                    Text(project).tag(project)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
+
             Spacer()
         }
     }
@@ -186,15 +216,56 @@ struct UsageMenuView: View {
         }
     }
 
-    private func metricGrid(_ snapshot: UsageSnapshot, palette: PulsePalette) -> some View {
+    private func heatmapView(_ days: [DailyUsage], palette: PulsePalette) -> some View {
+        let maxTokens = max(days.map(\.totalTokens).max() ?? 0, 1)
+
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("Activity")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(palette.primary)
+
+            HStack(spacing: 6) {
+                ForEach(days) { day in
+                    let intensity = Double(day.totalTokens) / Double(maxTokens)
+                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                        .fill(dayColor(intensity: intensity, palette: palette))
+                        .frame(width: 18, height: 18)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                .stroke(palette.divider, lineWidth: 1)
+                        )
+                        .help("\(day.date.formatted(date: .abbreviated, time: .omitted)): \(UsageFormatters.compact(day.totalTokens)) tokens, \(day.sessionCount) sessions")
+                }
+            }
+
+            HStack {
+                Text("14 days")
+                Spacer()
+                Text("Today")
+            }
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(palette.muted)
+        }
+    }
+
+    private func dayColor(intensity: Double, palette: PulsePalette) -> Color {
+        let clamped = min(max(intensity, 0), 1)
+        if clamped == 0 {
+            return palette.button
+        }
+
+        return palette.accent.opacity(0.15 + (clamped * 0.85))
+    }
+
+    private func metricGrid(_ overview: UsageOverview, palette: PulsePalette) -> some View {
         VStack(spacing: 8) {
-            metricRow("Today total", snapshot.today.effectiveTotal, palette: palette)
-            metricRow("Today input", snapshot.today.inputTokens, palette: palette)
-            metricRow("Today cached", snapshot.today.cachedInputTokens, palette: palette)
-            metricRow("Today output", snapshot.today.outputTokens, palette: palette)
-            metricRow("Today reasoning", snapshot.today.reasoningOutputTokens, palette: palette)
-            metricRow("Sessions today", snapshot.sessionsToday, palette: palette)
-            metricRow("All total", snapshot.allTime.effectiveTotal, palette: palette)
+            metricRow("Today total", overview.today.effectiveTotal, palette: palette)
+            metricRow("Today input", overview.today.inputTokens, palette: palette)
+            metricRow("Today cached", overview.today.cachedInputTokens, palette: palette)
+            metricRow("Today output", overview.today.outputTokens, palette: palette)
+            metricRow("Today reasoning", overview.today.reasoningOutputTokens, palette: palette)
+            metricRow("Sessions today", overview.sessionsToday, palette: palette)
+            metricRow("All total", overview.allTime.effectiveTotal, palette: palette)
         }
     }
 
@@ -210,18 +281,43 @@ struct UsageMenuView: View {
         .font(.system(size: 13, weight: .medium))
     }
 
-    private func modelSummary(_ snapshot: UsageSnapshot, palette: PulsePalette) -> some View {
+    private func projectSummary(_ projects: [ProjectUsage], palette: PulsePalette) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Projects")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(palette.primary)
+
+            if projects.isEmpty {
+                Text("No project data")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(palette.muted)
+            } else {
+                ForEach(projects.prefix(3)) { project in
+                    HStack {
+                        Text(UsageFormatters.shortMenuText(project.name, limit: 24))
+                        Spacer()
+                        Text("\(UsageFormatters.compact(project.usage.effectiveTotal)) · \(project.sessionCount)")
+                            .fontDesign(.monospaced)
+                    }
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(palette.secondary)
+                }
+            }
+        }
+    }
+
+    private func modelSummary(_ models: [ModelUsage], palette: PulsePalette) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Models")
                 .font(.system(size: 14, weight: .bold))
                 .foregroundStyle(palette.primary)
 
-            if snapshot.models.isEmpty {
+            if models.isEmpty {
                 Text("No token usage")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(palette.muted)
             } else {
-                ForEach(snapshot.models.prefix(4)) { model in
+                ForEach(models.prefix(4)) { model in
                     HStack {
                         Text(UsageFormatters.shortMenuText(model.id, limit: 24))
                         Spacer()

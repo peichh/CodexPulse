@@ -14,6 +14,8 @@ Built with Codex.
 - 5h and weekly usage windows from Codex `rate_limits`
 - Estimated token limit and estimated tokens left
 - Today and all-time token totals
+- Project filtering by session `cwd`
+- 14-day activity heatmap
 - Usage by model
 - Appearance setting: System, Light, or Dark
 - Launch-at-login via LaunchAgent

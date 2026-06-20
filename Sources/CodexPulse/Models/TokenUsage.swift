@@ -39,6 +39,8 @@ struct SessionUsage: Identifiable {
     let date: Date
     let localDay: Date
     let model: String
+    let projectName: String
+    let projectPath: String?
     let usage: TokenUsage
     let rateLimits: RateLimits?
 }
@@ -46,6 +48,33 @@ struct SessionUsage: Identifiable {
 struct ModelUsage: Identifiable {
     let id: String
     let usage: TokenUsage
+}
+
+struct DailyUsage: Identifiable {
+    let id: Date
+    let date: Date
+    let totalTokens: Int
+    let sessionCount: Int
+
+    var isToday: Bool {
+        Calendar.current.isDateInToday(date)
+    }
+}
+
+struct ProjectUsage: Identifiable {
+    let id: String
+    let name: String
+    let sessionCount: Int
+    let usage: TokenUsage
+}
+
+struct UsageOverview {
+    var today = TokenUsage.zero
+    var currentWindow = TokenUsage.zero
+    var allTime = TokenUsage.zero
+    var sessionsToday = 0
+    var sessionsInWindow = 0
+    var models: [ModelUsage] = []
 }
 
 struct RateLimitWindow: Equatable {
@@ -91,6 +120,7 @@ struct RateLimits: Equatable {
 }
 
 struct UsageSnapshot {
+    var sessions: [SessionUsage] = []
     var today = TokenUsage.zero
     var currentWindow = TokenUsage.zero
     var allTime = TokenUsage.zero
