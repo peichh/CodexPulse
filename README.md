@@ -4,7 +4,7 @@
 
 It reads local Codex session logs, shows the current rate-limit window in the menu bar, and opens a compact dashboard with token totals, estimated limits, reset countdowns, and model usage.
 
-Made by Codex.
+Built with Codex.
 
 ## Features
 

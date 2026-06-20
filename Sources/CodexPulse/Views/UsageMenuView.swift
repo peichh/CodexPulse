@@ -32,7 +32,7 @@ struct UsageMenuView: View {
 
                 actions
 
-                Text("Made by Codex")
+                Text("Built with Codex")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.32))
                     .frame(maxWidth: .infinity, alignment: .center)
