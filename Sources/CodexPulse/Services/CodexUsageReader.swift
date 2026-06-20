@@ -283,7 +283,7 @@ final class CodexUsageReader {
             return model.trimmingCharacters(in: .whitespacesAndNewlines)
         }
 
-        return "Unknown model"
+        return "Codex sessions"
     }
 
     private func eventDate(_ event: [String: Any]) -> Date {

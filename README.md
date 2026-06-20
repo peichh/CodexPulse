@@ -15,6 +15,7 @@ Built with Codex.
 - Estimated token limit and estimated tokens left
 - Today and all-time token totals
 - Usage by model
+- Appearance setting: System, Light, or Dark
 - Launch-at-login via LaunchAgent
 - Menu bar only, no Dock icon
 
